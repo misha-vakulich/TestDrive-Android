@@ -13,9 +13,10 @@ import com.kinvey.android.callback.KinveyDeleteCallback;
 import com.kinvey.android.callback.KinveyListCallback;
 import com.kinvey.android.callback.KinveyUserCallback;
 import com.kinvey.java.Query;
-import com.kinvey.java.User;
 import com.kinvey.java.core.KinveyClientCallback;
+import com.kinvey.java.dto.User;
 import com.kinvey.java.model.KinveyDeleteResponse;
+import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -38,9 +39,9 @@ public class MainActivity extends ActionBarActivity {
         bar.setIndeterminate(true);
 
         kinveyClient = new Client.Builder(appKey, appSecret, this).build();
-        if (!kinveyClient.user().isUserLoggedIn()) {
+        if (!kinveyClient.userStore().isUserLoggedIn()) {
             bar.setVisibility(View.VISIBLE);
-            kinveyClient.user().login(new KinveyUserCallback() {
+            kinveyClient.userStore().login(new KinveyUserCallback() {
                 @Override
                 public void onSuccess(User result) {
                     bar.setVisibility(View.GONE);
@@ -56,18 +57,25 @@ public class MainActivity extends ActionBarActivity {
                 }
             });
         }   else {
-            Toast.makeText(this, "Using cached implicit user " + kinveyClient.user().getId(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Using cached implicit user " + kinveyClient.userStore().getCurrentUser().getId(), Toast.LENGTH_LONG).show();
         }
     }
 
     public void onLoadClick(View view) {
         bar.setVisibility(View.VISIBLE);
-        kinveyClient.appData("entityCollection", Entity.class).getEntity("myEntity", new KinveyClientCallback<Entity>() {
+        kinveyClient.dataStore("entityCollection", Entity.class).find("myEntity", new KinveyClientCallback<Entity>() {
             @Override
             public void onSuccess(Entity result) {
                 bar.setVisibility(View.GONE);
-                Toast.makeText(MainActivity.this,"Save Worked!\nTitle: " + result.getTitle()
-                        + "\nDescription: " + result.get("Description"), Toast.LENGTH_LONG).show();
+
+                if (result == null){
+                    Toast.makeText(MainActivity.this,"Load Worked!\nNo data found", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(MainActivity.this,"Load Worked!\nTitle: " + result.getTitle()
+                            + "\nDescription: " + result.get("Description"), Toast.LENGTH_LONG).show();
+                }
+
+
             }
 
             @Override
@@ -82,13 +90,13 @@ public class MainActivity extends ActionBarActivity {
     public void onQueryClick(View view) {
         bar.setVisibility(View.VISIBLE);
         Query myQuery = kinveyClient.query();
-        myQuery.equals("_id","myEntity");
-        kinveyClient.appData("entityCollection", Entity.class).get(myQuery, new KinveyListCallback<Entity>() {
+        myQuery.equals("_id", "myEntity");
+        kinveyClient.dataStore("entityCollection", Entity.class).find(myQuery, new KinveyListCallback<Entity>() {
             @Override
-            public void onSuccess(Entity[] result) {
+            public void onSuccess(List<Entity> result) {
                 bar.setVisibility(View.GONE);
 
-                Toast.makeText(MainActivity.this,"query Worked!\n Got: " + result.length, Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "query Worked!\n Got: " + result.size(), Toast.LENGTH_LONG).show();
 
             }
 
@@ -103,11 +111,11 @@ public class MainActivity extends ActionBarActivity {
 
     public void onLoadAllClick(View view) {
         bar.setVisibility(View.VISIBLE);
-        kinveyClient.appData("entityCollection", Entity.class).get(new KinveyListCallback<Entity>() {
+        kinveyClient.dataStore("entityCollection", Entity.class).find(new KinveyListCallback<Entity>() {
             @Override
-            public void onSuccess(Entity[] result) {
+            public void onSuccess(List<Entity> result) {
                 bar.setVisibility(View.GONE);
-                Toast.makeText(MainActivity.this,"Get All Worked!\n Got: " + result.length, Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Get All Worked!\n Got: " + result.size(), Toast.LENGTH_LONG).show();
 
             }
 
@@ -124,7 +132,7 @@ public class MainActivity extends ActionBarActivity {
         bar.setVisibility(View.VISIBLE);
         Entity entity = new Entity("myEntity");
         entity.put("Description","This is a description of a dynamically-added Entity property.");
-        kinveyClient.appData("entityCollection", Entity.class).save(entity, new KinveyClientCallback<Entity>() {
+        kinveyClient.dataStore("entityCollection", Entity.class).save(entity, new KinveyClientCallback<Entity>() {
             @Override
             public void onSuccess(Entity result) {
                 bar.setVisibility(View.GONE);
@@ -143,11 +151,11 @@ public class MainActivity extends ActionBarActivity {
 
     public void onDeleteClick(View view) {
         bar.setVisibility(View.VISIBLE);
-        kinveyClient.appData("entityCollection", Entity.class).delete("myEntity", new KinveyDeleteCallback() {
+        kinveyClient.dataStore("entityCollection", Entity.class).delete("myEntity", new KinveyDeleteCallback() {
             @Override
-            public void onSuccess(KinveyDeleteResponse result) {
+            public void onSuccess(Integer result) {
                 bar.setVisibility(View.GONE);
-                Toast.makeText(MainActivity.this, "Number of Entities Deleted: " + result.getCount(), Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Number of Entities Deleted: " + result, Toast.LENGTH_LONG).show();
             }
 
             @Override
